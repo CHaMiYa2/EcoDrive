@@ -8,8 +8,7 @@ if (isLoggedIn()) {
     exit;
 }
 
-$error  = '';
-$success = '';
+$error = '';
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $full_name     = trim($_POST['full_name']     ?? '');
@@ -26,7 +25,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $password      = $_POST['password']           ?? '';
     $confirm_pass  = $_POST['confirm_password']   ?? '';
 
-    // Validation
     if (empty($full_name) || empty($birthday) || empty($gender) || empty($address) ||
         empty($country) || empty($region) || empty($city) || empty($license_class) ||
         empty($vehicle_model) || empty($fuel_type) || empty($username) || empty($password)) {
@@ -38,7 +36,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     } elseif ($password !== $confirm_pass) {
         $error = 'Passwords do not match.';
     } else {
-        // Age check (must be 24+)
         $birth = new DateTime($birthday);
         $today = new DateTime();
         $age   = $today->diff($birth)->y;
@@ -47,8 +44,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $error = 'You must be at least 24 years old to register. Your age: ' . $age;
         } else {
             $db = getDB();
-
-            // Check username taken
             $stmt = $db->prepare("SELECT id FROM drivers WHERE username = ? LIMIT 1");
             $stmt->execute([$username]);
             if ($stmt->fetch()) {
@@ -77,99 +72,116 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Register — EcoDrive</title>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <h2>Driver Registration</h2>
+  <div class="auth-wrap wide">
+    <div class="auth-logo">
+      <div class="icon">🚛</div>
+      <div class="name">EcoDrive</div>
+    </div>
+    <h2>Driver Registration</h2>
 
-  <?php if ($error): ?>
-    <p style="color:red;"><?= htmlspecialchars($error) ?></p>
-  <?php endif; ?>
+    <?php if ($error): ?>
+      <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
+    <?php endif; ?>
 
-  <form method="POST">
+    <form method="POST">
 
-    <h3>Personal Information</h3>
+      <div class="section-title">Personal Information</div>
 
-    <label>Full Name *<br>
+      <label>Full Name *</label>
       <input type="text" name="full_name" value="<?= htmlspecialchars($_POST['full_name'] ?? '') ?>" required>
-    </label><br><br>
 
-    <label>Birthday * (must be 24+)<br>
-      <input type="date" name="birthday" value="<?= htmlspecialchars($_POST['birthday'] ?? '') ?>"
-             max="<?= date('Y-m-d', strtotime('-24 years')) ?>" required>
-    </label><br><br>
+      <div class="form-row">
+        <div>
+          <label>Date of Birth * (must be 24+)</label>
+          <input type="date" name="birthday" value="<?= htmlspecialchars($_POST['birthday'] ?? '') ?>"
+                 max="<?= date('Y-m-d', strtotime('-24 years')) ?>" required>
+        </div>
+        <div>
+          <label>Gender *</label>
+          <select name="gender" required>
+            <option value="">Select</option>
+            <option value="male"   <?= (($_POST['gender'] ?? '') === 'male')   ? 'selected' : '' ?>>Male</option>
+            <option value="female" <?= (($_POST['gender'] ?? '') === 'female') ? 'selected' : '' ?>>Female</option>
+            <option value="other"  <?= (($_POST['gender'] ?? '') === 'other')  ? 'selected' : '' ?>>Other</option>
+          </select>
+        </div>
+      </div>
 
-    <label>Gender *<br>
-      <select name="gender" required>
-        <option value="">Select</option>
-        <option value="male"   <?= (($_POST['gender'] ?? '') === 'male')   ? 'selected' : '' ?>>Male</option>
-        <option value="female" <?= (($_POST['gender'] ?? '') === 'female') ? 'selected' : '' ?>>Female</option>
-        <option value="other"  <?= (($_POST['gender'] ?? '') === 'other')  ? 'selected' : '' ?>>Other</option>
-      </select>
-    </label><br><br>
+      <label>Address *</label>
+      <textarea name="address" rows="3" required><?= htmlspecialchars($_POST['address'] ?? '') ?></textarea>
 
-    <label>Address *<br>
-      <textarea name="address" rows="3" cols="40" required><?= htmlspecialchars($_POST['address'] ?? '') ?></textarea>
-    </label><br><br>
-
-    <label>License Class *<br>
+      <label>License Class *</label>
       <select name="license_class" required>
         <option value="">Select</option>
         <option value="A" <?= (($_POST['license_class'] ?? '') === 'A') ? 'selected' : '' ?>>Class A — Heavy Vehicles</option>
         <option value="B" <?= (($_POST['license_class'] ?? '') === 'B') ? 'selected' : '' ?>>Class B — Light Vehicles</option>
         <option value="C" <?= (($_POST['license_class'] ?? '') === 'C') ? 'selected' : '' ?>>Class C — Motorcycles</option>
       </select>
-    </label><br><br>
 
-    <h3>Location</h3>
+      <div class="section-title">Location</div>
 
-    <label>Country *<br>
-      <input type="text" name="country" value="<?= htmlspecialchars($_POST['country'] ?? '') ?>" required>
-    </label><br><br>
+      <div class="form-row">
+        <div>
+          <label>Country *</label>
+          <input type="text" name="country" value="<?= htmlspecialchars($_POST['country'] ?? '') ?>" required>
+        </div>
+        <div>
+          <label>Region *</label>
+          <input type="text" name="region" value="<?= htmlspecialchars($_POST['region'] ?? '') ?>" required>
+        </div>
+      </div>
 
-    <label>Region *<br>
-      <input type="text" name="region" value="<?= htmlspecialchars($_POST['region'] ?? '') ?>" required>
-    </label><br><br>
-
-    <label>City *<br>
+      <label>City *</label>
       <input type="text" name="city" value="<?= htmlspecialchars($_POST['city'] ?? '') ?>" required>
-    </label><br><br>
 
-    <h3>Vehicle Information</h3>
+      <div class="section-title">Vehicle Information</div>
 
-    <label>Vehicle Model *<br>
-      <input type="text" name="vehicle_model" value="<?= htmlspecialchars($_POST['vehicle_model'] ?? '') ?>" required>
-    </label><br><br>
+      <div class="form-row">
+        <div>
+          <label>Vehicle Model *</label>
+          <input type="text" name="vehicle_model" value="<?= htmlspecialchars($_POST['vehicle_model'] ?? '') ?>" required>
+        </div>
+        <div>
+          <label>Fuel Type *</label>
+          <select name="fuel_type" required>
+            <option value="">Select</option>
+            <option value="Petrol"   <?= (($_POST['fuel_type'] ?? '') === 'Petrol')   ? 'selected' : '' ?>>Petrol</option>
+            <option value="Diesel"   <?= (($_POST['fuel_type'] ?? '') === 'Diesel')   ? 'selected' : '' ?>>Diesel</option>
+            <option value="Hybrid"   <?= (($_POST['fuel_type'] ?? '') === 'Hybrid')   ? 'selected' : '' ?>>Hybrid</option>
+            <option value="Electric" <?= (($_POST['fuel_type'] ?? '') === 'Electric') ? 'selected' : '' ?>>Electric (EV)</option>
+            <option value="LPG"      <?= (($_POST['fuel_type'] ?? '') === 'LPG')      ? 'selected' : '' ?>>LPG</option>
+            <option value="CNG"      <?= (($_POST['fuel_type'] ?? '') === 'CNG')      ? 'selected' : '' ?>>CNG</option>
+          </select>
+        </div>
+      </div>
 
-    <label>Fuel Type *<br>
-      <select name="fuel_type" required>
-        <option value="">Select</option>
-        <option value="Petrol"   <?= (($_POST['fuel_type'] ?? '') === 'Petrol')   ? 'selected' : '' ?>>Petrol</option>
-        <option value="Diesel"   <?= (($_POST['fuel_type'] ?? '') === 'Diesel')   ? 'selected' : '' ?>>Diesel</option>
-        <option value="Hybrid"   <?= (($_POST['fuel_type'] ?? '') === 'Hybrid')   ? 'selected' : '' ?>>Hybrid</option>
-        <option value="Electric" <?= (($_POST['fuel_type'] ?? '') === 'Electric') ? 'selected' : '' ?>>Electric (EV)</option>
-        <option value="LPG"      <?= (($_POST['fuel_type'] ?? '') === 'LPG')      ? 'selected' : '' ?>>LPG</option>
-        <option value="CNG"      <?= (($_POST['fuel_type'] ?? '') === 'CNG')      ? 'selected' : '' ?>>CNG</option>
-      </select>
-    </label><br><br>
+      <div class="section-title">Account</div>
 
-    <h3>Account</h3>
-
-    <label>Username * (min 4 chars)<br>
+      <label>Username * (min 4 chars)</label>
       <input type="text" name="username" value="<?= htmlspecialchars($_POST['username'] ?? '') ?>" required>
-    </label><br><br>
 
-    <label>Password * (min 8 chars)<br>
-      <input type="password" name="password" required>
-    </label><br><br>
+      <div class="form-row">
+        <div>
+          <label>Password * (min 8 chars)</label>
+          <input type="password" name="password" required>
+        </div>
+        <div>
+          <label>Confirm Password *</label>
+          <input type="password" name="confirm_password" required>
+        </div>
+      </div>
 
-    <label>Confirm Password *<br>
-      <input type="password" name="confirm_password" required>
-    </label><br><br>
+      <button type="submit" class="btn-block">Create Driver Account</button>
+    </form>
 
-    <button type="submit">Register</button>
-  </form>
-
-  <p>Already have an account? <a href="/login.php">Login here</a></p>
+    <div class="auth-footer">
+      Already have an account? <a href="/login.php">Login here</a>
+    </div>
+  </div>
 </body>
 </html>

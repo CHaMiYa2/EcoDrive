@@ -7,14 +7,14 @@ $db    = getDB();
 $error = '';
 $success = '';
 
-// ── DELETE ────────────────────────────────────────────────────────
+// DELETE
 if (isset($_GET['delete'])) {
     $id = (int)$_GET['delete'];
     $db->prepare("DELETE FROM drivers WHERE id = ?")->execute([$id]);
     $success = 'Driver deleted successfully.';
 }
 
-// ── UPDATE ────────────────────────────────────────────────────────
+// UPDATE
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_driver'])) {
     $id            = (int)$_POST['id'];
     $full_name     = trim($_POST['full_name']     ?? '');
@@ -56,7 +56,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['update_driver'])) {
     }
 }
 
-// ── FETCH EDIT DRIVER ─────────────────────────────────────────────
+// FETCH EDIT
 $editDriver = null;
 if (isset($_GET['edit'])) {
     $stmt = $db->prepare("SELECT * FROM drivers WHERE id = ? LIMIT 1");
@@ -64,7 +64,7 @@ if (isset($_GET['edit'])) {
     $editDriver = $stmt->fetch();
 }
 
-// ── SEARCH + LIST ─────────────────────────────────────────────────
+// SEARCH + LIST
 $search = trim($_GET['search'] ?? '');
 $page   = max(1, (int)($_GET['page'] ?? 1));
 $limit  = 10;
@@ -85,161 +85,192 @@ if ($search) {
 $totalRows  = (int)$total->fetchColumn();
 $drivers    = $stmt->fetchAll();
 $totalPages = (int)ceil($totalRows / $limit);
+
+$fuelBadgeMap = [
+    'Electric' => 'badge-green', 'Hybrid' => 'badge-green',
+    'Petrol' => 'badge-slate', 'Diesel' => 'badge-slate',
+    'LPG' => 'badge-blue', 'CNG' => 'badge-blue'
+];
 ?>
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Admin Dashboard — EcoDrive</title>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <h2>Admin Dashboard</h2>
-  <p>Logged in as: <?= htmlspecialchars($_SESSION['username']) ?> | <a href="/logout.php">Logout</a></p>
+<div class="dash-layout">
 
-  <?php if ($error):   ?><p style="color:red;"><?=   htmlspecialchars($error)   ?></p><?php endif; ?>
-  <?php if ($success): ?><p style="color:green;"><?= htmlspecialchars($success) ?></p><?php endif; ?>
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="icon">🛡</div>
+      <div>
+        <div class="name">EcoDrive</div>
+        <div class="role">Fleet Admin</div>
+      </div>
+    </div>
+    <nav>
+      <a href="/admin_dashboard.php" class="active">📊 Drivers</a>
+    </nav>
+    <div class="user-box">
+      <div class="user-name"><?= htmlspecialchars($_SESSION['username']) ?></div>
+      <div class="user-role">Administrator</div>
+      <a href="/logout.php" class="btn btn-outline btn-sm btn-block">Logout</a>
+    </div>
+  </aside>
 
-  <hr>
+  <div class="main">
+    <div class="page-header">
+      <h2>Fleet Dashboard</h2>
+    </div>
 
-  <!-- EDIT FORM -->
-  <?php if ($editDriver): ?>
-    <h3>Edit Driver</h3>
-    <form method="POST">
-      <input type="hidden" name="update_driver" value="1">
-      <input type="hidden" name="id" value="<?= $editDriver['id'] ?>">
+    <?php if ($error):   ?><div class="alert alert-error"><?=   htmlspecialchars($error)   ?></div><?php endif; ?>
+    <?php if ($success): ?><div class="alert alert-success"><?= htmlspecialchars($success) ?></div><?php endif; ?>
 
-      <label>Full Name *<br>
-        <input type="text" name="full_name" value="<?= htmlspecialchars($editDriver['full_name']) ?>" required>
-      </label><br><br>
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="label">Total Drivers</div>
+        <div class="value"><?= $totalRows ?></div>
+      </div>
+    </div>
 
-      <label>Birthday *<br>
-        <input type="date" name="birthday" value="<?= htmlspecialchars($editDriver['birthday']) ?>" required>
-      </label><br><br>
+    <?php if ($editDriver): ?>
+      <div class="card">
+        <div class="card-header">Edit Driver</div>
+        <div class="card-body">
+          <form method="POST">
+            <input type="hidden" name="update_driver" value="1">
+            <input type="hidden" name="id" value="<?= $editDriver['id'] ?>">
 
-      <label>Gender *<br>
-        <select name="gender" required>
-          <option value="male"   <?= $editDriver['gender'] === 'male'   ? 'selected' : '' ?>>Male</option>
-          <option value="female" <?= $editDriver['gender'] === 'female' ? 'selected' : '' ?>>Female</option>
-          <option value="other"  <?= $editDriver['gender'] === 'other'  ? 'selected' : '' ?>>Other</option>
-        </select>
-      </label><br><br>
+            <label>Full Name *</label>
+            <input type="text" name="full_name" value="<?= htmlspecialchars($editDriver['full_name']) ?>" required>
 
-      <label>Address *<br>
-        <textarea name="address" rows="3" cols="40" required><?= htmlspecialchars($editDriver['address']) ?></textarea>
-      </label><br><br>
+            <div class="form-row">
+              <div>
+                <label>Birthday *</label>
+                <input type="date" name="birthday" value="<?= htmlspecialchars($editDriver['birthday']) ?>" required>
+              </div>
+              <div>
+                <label>Gender *</label>
+                <select name="gender" required>
+                  <option value="male"   <?= $editDriver['gender'] === 'male'   ? 'selected' : '' ?>>Male</option>
+                  <option value="female" <?= $editDriver['gender'] === 'female' ? 'selected' : '' ?>>Female</option>
+                  <option value="other"  <?= $editDriver['gender'] === 'other'  ? 'selected' : '' ?>>Other</option>
+                </select>
+              </div>
+            </div>
 
-      <label>Country *<br>
-        <input type="text" name="country" value="<?= htmlspecialchars($editDriver['country']) ?>" required>
-      </label><br><br>
+            <label>Address *</label>
+            <textarea name="address" rows="2" required><?= htmlspecialchars($editDriver['address']) ?></textarea>
 
-      <label>Region *<br>
-        <input type="text" name="region" value="<?= htmlspecialchars($editDriver['region']) ?>" required>
-      </label><br><br>
+            <div class="form-row">
+              <div>
+                <label>Country *</label>
+                <input type="text" name="country" value="<?= htmlspecialchars($editDriver['country']) ?>" required>
+              </div>
+              <div>
+                <label>Region *</label>
+                <input type="text" name="region" value="<?= htmlspecialchars($editDriver['region']) ?>" required>
+              </div>
+            </div>
 
-      <label>City *<br>
-        <input type="text" name="city" value="<?= htmlspecialchars($editDriver['city']) ?>" required>
-      </label><br><br>
+            <label>City *</label>
+            <input type="text" name="city" value="<?= htmlspecialchars($editDriver['city']) ?>" required>
 
-      <label>License Class *<br>
-        <select name="license_class" required>
-          <option value="A" <?= $editDriver['license_class'] === 'A' ? 'selected' : '' ?>>Class A</option>
-          <option value="B" <?= $editDriver['license_class'] === 'B' ? 'selected' : '' ?>>Class B</option>
-          <option value="C" <?= $editDriver['license_class'] === 'C' ? 'selected' : '' ?>>Class C</option>
-        </select>
-      </label><br><br>
+            <div class="form-row">
+              <div>
+                <label>License Class *</label>
+                <select name="license_class" required>
+                  <option value="A" <?= $editDriver['license_class'] === 'A' ? 'selected' : '' ?>>Class A</option>
+                  <option value="B" <?= $editDriver['license_class'] === 'B' ? 'selected' : '' ?>>Class B</option>
+                  <option value="C" <?= $editDriver['license_class'] === 'C' ? 'selected' : '' ?>>Class C</option>
+                </select>
+              </div>
+              <div>
+                <label>Fuel Type *</label>
+                <select name="fuel_type" required>
+                  <option value="Petrol"   <?= $editDriver['fuel_type'] === 'Petrol'   ? 'selected' : '' ?>>Petrol</option>
+                  <option value="Diesel"   <?= $editDriver['fuel_type'] === 'Diesel'   ? 'selected' : '' ?>>Diesel</option>
+                  <option value="Hybrid"   <?= $editDriver['fuel_type'] === 'Hybrid'   ? 'selected' : '' ?>>Hybrid</option>
+                  <option value="Electric" <?= $editDriver['fuel_type'] === 'Electric' ? 'selected' : '' ?>>Electric</option>
+                  <option value="LPG"      <?= $editDriver['fuel_type'] === 'LPG'      ? 'selected' : '' ?>>LPG</option>
+                  <option value="CNG"      <?= $editDriver['fuel_type'] === 'CNG'      ? 'selected' : '' ?>>CNG</option>
+                </select>
+              </div>
+            </div>
 
-      <label>Vehicle Model *<br>
-        <input type="text" name="vehicle_model" value="<?= htmlspecialchars($editDriver['vehicle_model']) ?>" required>
-      </label><br><br>
+            <label>Vehicle Model *</label>
+            <input type="text" name="vehicle_model" value="<?= htmlspecialchars($editDriver['vehicle_model']) ?>" required>
 
-      <label>Fuel Type *<br>
-        <select name="fuel_type" required>
-          <option value="Petrol"   <?= $editDriver['fuel_type'] === 'Petrol'   ? 'selected' : '' ?>>Petrol</option>
-          <option value="Diesel"   <?= $editDriver['fuel_type'] === 'Diesel'   ? 'selected' : '' ?>>Diesel</option>
-          <option value="Hybrid"   <?= $editDriver['fuel_type'] === 'Hybrid'   ? 'selected' : '' ?>>Hybrid</option>
-          <option value="Electric" <?= $editDriver['fuel_type'] === 'Electric' ? 'selected' : '' ?>>Electric</option>
-          <option value="LPG"      <?= $editDriver['fuel_type'] === 'LPG'      ? 'selected' : '' ?>>LPG</option>
-          <option value="CNG"      <?= $editDriver['fuel_type'] === 'CNG'      ? 'selected' : '' ?>>CNG</option>
-        </select>
-      </label><br><br>
-
-      <button type="submit">Save Changes</button>
-      <a href="/admin_dashboard.php">Cancel</a>
-    </form>
-    <hr>
-  <?php endif; ?>
-
-  <!-- SEARCH -->
-  <h3>All Drivers (<?= $totalRows ?>)</h3>
-  <form method="GET">
-    <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search name, city, vehicle...">
-    <button type="submit">Search</button>
-    <?php if ($search): ?>
-      <a href="/admin_dashboard.php">Clear</a>
+            <button type="submit">Save Changes</button>
+            <a href="/admin_dashboard.php" class="btn btn-outline">Cancel</a>
+          </form>
+        </div>
+      </div>
     <?php endif; ?>
-  </form>
 
-  <br>
+    <div class="card">
+      <div class="card-header">Registered Drivers (<?= $totalRows ?>)</div>
+      <div class="card-body">
 
-  <!-- DRIVERS TABLE -->
-  <?php if (empty($drivers)): ?>
-    <p>No drivers found.</p>
-  <?php else: ?>
-    <table border="1" cellpadding="6" cellspacing="0">
-      <thead>
-        <tr>
-          <th>#</th>
-          <th>Full Name</th>
-          <th>Username</th>
-          <th>Birthday</th>
-          <th>Gender</th>
-          <th>Country</th>
-          <th>Region</th>
-          <th>City</th>
-          <th>License</th>
-          <th>Vehicle</th>
-          <th>Fuel</th>
-          <th>Registered</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        <?php foreach ($drivers as $i => $d): ?>
-          <tr>
-            <td><?= $offset + $i + 1 ?></td>
-            <td><?= htmlspecialchars($d['full_name']) ?></td>
-            <td><?= htmlspecialchars($d['username']) ?></td>
-            <td><?= htmlspecialchars($d['birthday']) ?></td>
-            <td><?= htmlspecialchars($d['gender']) ?></td>
-            <td><?= htmlspecialchars($d['country']) ?></td>
-            <td><?= htmlspecialchars($d['region']) ?></td>
-            <td><?= htmlspecialchars($d['city']) ?></td>
-            <td><?= htmlspecialchars($d['license_class']) ?></td>
-            <td><?= htmlspecialchars($d['vehicle_model']) ?></td>
-            <td><?= htmlspecialchars($d['fuel_type']) ?></td>
-            <td><?= htmlspecialchars($d['created_at']) ?></td>
-            <td>
-              <a href="/admin_dashboard.php?edit=<?= $d['id'] ?><?= $search ? '&search=' . urlencode($search) : '' ?>">Edit</a> |
-              <a href="/admin_dashboard.php?delete=<?= $d['id'] ?><?= $search ? '&search=' . urlencode($search) : '' ?>"
-                 onclick="return confirm('Delete <?= htmlspecialchars($d['full_name']) ?>?')">Delete</a>
-            </td>
-          </tr>
-        <?php endforeach; ?>
-      </tbody>
-    </table>
+        <form method="GET" class="search-bar">
+          <input type="text" name="search" value="<?= htmlspecialchars($search) ?>" placeholder="Search name, city, vehicle...">
+          <button type="submit" class="btn-sm">Search</button>
+          <?php if ($search): ?>
+            <a href="/admin_dashboard.php" class="btn btn-outline btn-sm">Clear</a>
+          <?php endif; ?>
+        </form>
 
-    <!-- PAGINATION -->
-    <?php if ($totalPages > 1): ?>
-      <br>
-      <?php for ($p = 1; $p <= $totalPages; $p++): ?>
-        <?php if ($p == $page): ?>
-          <strong><?= $p ?></strong>
+        <?php if (empty($drivers)): ?>
+          <p>No drivers found.</p>
         <?php else: ?>
-          <a href="/admin_dashboard.php?page=<?= $p ?><?= $search ? '&search=' . urlencode($search) : '' ?>"><?= $p ?></a>
-        <?php endif; ?>
-      <?php endfor; ?>
-    <?php endif; ?>
-  <?php endif; ?>
+          <table>
+            <thead>
+              <tr>
+                <th>#</th><th>Name</th><th>Username</th><th>Location</th>
+                <th>License</th><th>Vehicle</th><th>Fuel</th><th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              <?php foreach ($drivers as $i => $d): ?>
+                <tr>
+                  <td><?= $offset + $i + 1 ?></td>
+                  <td><strong><?= htmlspecialchars($d['full_name']) ?></strong></td>
+                  <td><?= htmlspecialchars($d['username']) ?></td>
+                  <td><?= htmlspecialchars($d['city'] . ', ' . $d['country']) ?></td>
+                  <td><span class="badge badge-blue">Class <?= htmlspecialchars($d['license_class']) ?></span></td>
+                  <td><?= htmlspecialchars($d['vehicle_model']) ?></td>
+                  <td><span class="badge <?= $fuelBadgeMap[$d['fuel_type']] ?? 'badge-slate' ?>"><?= htmlspecialchars($d['fuel_type']) ?></span></td>
+                  <td>
+                    <a href="/admin_dashboard.php?edit=<?= $d['id'] ?><?= $search ? '&search=' . urlencode($search) : '' ?>" class="btn btn-outline btn-sm">Edit</a>
+                    <a href="/admin_dashboard.php?delete=<?= $d['id'] ?><?= $search ? '&search=' . urlencode($search) : '' ?>"
+                       class="btn btn-danger btn-sm"
+                       onclick="return confirm('Delete <?= htmlspecialchars($d['full_name']) ?>?')">Delete</a>
+                  </td>
+                </tr>
+              <?php endforeach; ?>
+            </tbody>
+          </table>
 
+          <?php if ($totalPages > 1): ?>
+            <div class="pagination">
+              <?php for ($p = 1; $p <= $totalPages; $p++): ?>
+                <?php if ($p == $page): ?>
+                  <strong><?= $p ?></strong>
+                <?php else: ?>
+                  <a href="/admin_dashboard.php?page=<?= $p ?><?= $search ? '&search=' . urlencode($search) : '' ?>"><?= $p ?></a>
+                <?php endif; ?>
+              <?php endfor; ?>
+            </div>
+          <?php endif; ?>
+        <?php endif; ?>
+
+      </div>
+    </div>
+
+  </div>
+</div>
 </body>
 </html>

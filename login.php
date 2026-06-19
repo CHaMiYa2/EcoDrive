@@ -54,42 +54,49 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Login — EcoDrive</title>
+  <link rel="stylesheet" href="/css/style.css">
 </head>
 <body>
-  <h2>EcoDrive — Login</h2>
+  <div class="auth-wrap">
+    <div class="auth-logo">
+      <div class="icon">🚛</div>
+      <div class="name">EcoDrive</div>
+    </div>
+    <h2>Sign In</h2>
 
-  <?php if ($error): ?>
-    <p style="color:red;"><?= htmlspecialchars($error) ?></p>
-  <?php endif; ?>
+    <?php if ($error): ?>
+      <div class="alert alert-error"><?= htmlspecialchars($error) ?></div>
+    <?php endif; ?>
 
-  <?php if (isset($_GET['registered'])): ?>
-    <p style="color:green;">Registration successful! Please log in.</p>
-  <?php endif; ?>
+    <?php if (isset($_GET['registered'])): ?>
+      <div class="alert alert-success">Registration successful! Please log in.</div>
+    <?php endif; ?>
 
-  <?php if (isset($_GET['logout'])): ?>
-    <p style="color:green;">You have been logged out.</p>
-  <?php endif; ?>
+    <?php if (isset($_GET['logout'])): ?>
+      <div class="alert alert-success">You have been logged out.</div>
+    <?php endif; ?>
 
-  <form method="POST">
-    <label>Role:<br>
+    <form method="POST">
+      <label>Role</label>
       <select name="role">
         <option value="driver">Driver</option>
-        <option value="admin">Admin</option>
+        <option value="admin">Fleet Admin</option>
       </select>
-    </label><br><br>
 
-    <label>Username:<br>
+      <label>Username</label>
       <input type="text" name="username" required>
-    </label><br><br>
 
-    <label>Password:<br>
+      <label>Password</label>
       <input type="password" name="password" required>
-    </label><br><br>
 
-    <button type="submit">Login</button>
-  </form>
+      <button type="submit" class="btn-block">Login</button>
+    </form>
 
-  <p>New driver? <a href="/register.php">Register here</a></p>
+    <div class="auth-footer">
+      New driver? <a href="/register.php">Register here</a>
+    </div>
+  </div>
 </body>
 </html>
